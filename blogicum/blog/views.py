@@ -1,9 +1,8 @@
 from django.utils.timezone import now
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import  get_object_or_404, redirect
 
 from django.conf import settings
-from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm, UserChangeForm
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import UserCreationForm
 
 from django.views.generic import FormView, CreateView, ListView, DeleteView, DetailView, UpdateView, RedirectView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -39,7 +38,7 @@ class IndexView(ListView):
     """
     model = Post
     template_name = 'blog/index.html'
-    context_object_name = 'page_obj'
+    context_object_name = 'object_list'
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
@@ -51,16 +50,16 @@ class IndexView(ListView):
             .order_by('-pub_date')
         )
 
+
 class CategoryView(LoginRequiredMixin, ListView):
     """Страница публикаций конкретной категории."""
     template_name = 'blog/category.html'
-    context_object_name = 'page_obj'
+    context_object_name = 'object_list'
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
         self.category = get_object_or_404(Category, slug=self.kwargs['slug'], is_published=True)
         return Post.objects.filter(
-            category=self.category,
             is_published=True
         ).annotate(comment_count=Count('comments')
                    ).order_by('-pub_date')
@@ -69,44 +68,18 @@ class CategoryView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['category'] = get_object_or_404(Category, slug=self.kwargs['slug'], is_published=True)
         return context
-    # def get_queryset(self):
-    #     # Получаем базовый queryset
-    #     queryset = super().get_queryset()
-    #
-    #     # Фильтрация по категории, если указана
-    #     if "slug" in self.kwargs:
-    #         self.category = get_object_or_404(Category, slug=self.kwargs["slug"], is_published=True)
-    #         queryset = queryset.filter(category=self.category)
-    #
-    #     # Фильтрация: только опубликованные записи и записи с прошедшей датой публикации
-    #     queryset = queryset.filter(
-    #         is_published=True,
-    #         pub_date__lte=now()
-    #     )
-    #
-    #     # Исключаем записи без изображения, если требуется
-    #     queryset = queryset.exclude(image__isnull=True)
-    #
-    #     # Добавляем аннотацию для подсчёта комментариев
-    #     queryset = queryset.annotate(comment_count=Count("comments"))
-    #
-    #     # Сортируем записи по дате публикации
-    #     return queryset.order_by("-pub_date")
 
 
-class ProfileView(LoginRequiredMixin, ListView):
-    """
-    Страница профиля пользователя.
-    """
+class ProfileView(ListView):
     template_name = "blog/profile.html"
-    context_object_name = "page_obj"
+    context_object_name = "object_list"
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
         user_profile = get_object_or_404(User, username=self.kwargs["username"])
         queryset = Post.objects.filter(author=user_profile).annotate(
             comment_count=Count("comments")).order_by('-pub_date')
-        if self.request.user != user_profile:
+        if not self.request.user.is_authenticated or self.request.user != user_profile:
             queryset = queryset.filter(is_published=True)
         return queryset
 
@@ -152,11 +125,6 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         post.save()
         return redirect('blog:profile', username=self.request.user.username)
 
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:profile',
-            kwargs={'username': self.request.user.username}
-        )
 
 
 class PostDetailView(LoginRequiredMixin, DetailView):
@@ -180,7 +148,7 @@ class PostDetailView(LoginRequiredMixin, DetailView):
         context['comments'] = self.object.comments.order_by("created_at")
         return context
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request,):
         self.object = self.get_object()
         form = CommentForm(request.POST)
         if form.is_valid():
