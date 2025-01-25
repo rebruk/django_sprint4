@@ -1,7 +1,7 @@
 from typing import Union
 from django.db import models
 from .querysets import PostQuerySet
-from django.utils.timezone import now
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 
@@ -72,7 +72,8 @@ class Post(models.Model):
     pub_date = models.DateTimeField(
         verbose_name="Дата и время публикации",
         help_text="Если установить дату и время в будущем — "
-                  "можно делать отложенные публикации."
+                  "можно делать отложенные публикации.",
+        default=timezone.now
     )
     image = models.ImageField(
         'Изображение',
