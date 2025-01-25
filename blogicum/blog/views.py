@@ -43,11 +43,13 @@ class IndexView(ListView):
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
-        return Post.objects.filter(
-            is_published=True,
-            pub_date__lte=now()
-        ).annotate(comment_count=Count('comments')).order_by('-pub_date')
-
+        return (
+            super()
+            .get_queryset()
+            .filter(is_published=True, pub_date__lte=now())
+            .annotate(comment_count=Count('comments'))
+            .order_by('-pub_date')
+        )
 
 class CategoryView(LoginRequiredMixin, ListView):
     """Страница публикаций конкретной категории."""
@@ -63,11 +65,33 @@ class CategoryView(LoginRequiredMixin, ListView):
         ).annotate(comment_count=Count('comments')
                    ).order_by('-pub_date')
 
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['category'] = get_object_or_404(Category, slug=self.kwargs['slug'], is_published=True)
         return context
+    # def get_queryset(self):
+    #     # Получаем базовый queryset
+    #     queryset = super().get_queryset()
+    #
+    #     # Фильтрация по категории, если указана
+    #     if "slug" in self.kwargs:
+    #         self.category = get_object_or_404(Category, slug=self.kwargs["slug"], is_published=True)
+    #         queryset = queryset.filter(category=self.category)
+    #
+    #     # Фильтрация: только опубликованные записи и записи с прошедшей датой публикации
+    #     queryset = queryset.filter(
+    #         is_published=True,
+    #         pub_date__lte=now()
+    #     )
+    #
+    #     # Исключаем записи без изображения, если требуется
+    #     queryset = queryset.exclude(image__isnull=True)
+    #
+    #     # Добавляем аннотацию для подсчёта комментариев
+    #     queryset = queryset.annotate(comment_count=Count("comments"))
+    #
+    #     # Сортируем записи по дате публикации
+    #     return queryset.order_by("-pub_date")
 
 
 class ProfileView(LoginRequiredMixin, ListView):
