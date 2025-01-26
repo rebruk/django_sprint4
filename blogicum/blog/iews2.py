@@ -1,11 +1,11 @@
-from django.utils import timezone
+from django.utils.timezone import now
 from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic import FormView, CreateView, ListView, DeleteView, DetailView, UpdateView, RedirectView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse
 
 from .forms import PostForm, CommentForm
 from .models import Comment, Post, Category
@@ -24,7 +24,7 @@ class OnlyAuthorMixin(UserPassesTestMixin):
 class RegistrationView(FormView):
     template_name = 'registration/registration_form.html'
     form_class = UserCreationForm
-    success_url = reverse_lazy('blog:index')
+    success_url = reverse('blog:index')
 
     def form_valid(self, form):
         form.save()
@@ -32,9 +32,6 @@ class RegistrationView(FormView):
 
 
 class IndexView(ListView):
-    """
-    Главная страница сайта.
-    """
     model = Post
     template_name = 'blog/index.html'
     context_object_name = 'object_list'
@@ -44,14 +41,13 @@ class IndexView(ListView):
         return (
             super()
             .get_queryset()
-            .filter(is_published=True, pub_date__lte=timezone.now())
+            .filter(is_published=True, pub_date__lte=now())
             .annotate(comment_count=Count('comments'))
             .order_by('-pub_date')
         )
 
 
 class CategoryView(LoginRequiredMixin, ListView):
-    """Страница публикаций конкретной категории."""
     template_name = 'blog/category.html'
     context_object_name = 'object_list'
     paginate_by = settings.POSTS_PER_PAGE
@@ -64,8 +60,7 @@ class CategoryView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = get_object_or_404(Category, slug=self.kwargs['slug'], is_published=True)
-        #context['category'] = self.category
+        context['category'] = self.category
         return context
 
 
@@ -77,9 +72,9 @@ class ProfileView(ListView):
     def get_queryset(self):
         user_profile = get_object_or_404(User, username=self.kwargs["username"])
         queryset = user_profile.posts.annotate(comment_count=Count("comments")).order_by('-pub_date')
-        queryset = queryset.filter()
+        queryset = queryset.filter(pub_date__lte=now())
         if not self.request.user.is_authenticated or self.request.user != user_profile:
-            queryset = queryset.filter(is_published=True, pub_date__lte=timezone.now())
+            queryset = queryset.filter(is_published=True)
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -100,9 +95,6 @@ class EditProfileView(LoginRequiredMixin, UpdateView):
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
-    """
-    Создание публикации.
-    """
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
@@ -117,9 +109,6 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
 
 class PostDetailView(LoginRequiredMixin, DetailView):
-    """
-    Детали публикации.
-    """
     model = Post
     template_name = "blog/detail.html"
     context_object_name = "post"
@@ -159,11 +148,9 @@ class PostEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
 
 
 class PostDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):
-    """
-    Удаление публикации.
-    """
     model = Post
     template_name = "blog/create.html"
+
     def get_success_url(self):
         return reverse("blog:index")
 
@@ -181,9 +168,6 @@ class AddCommentView(LoginRequiredMixin, FormView):
 
 
 class EditCommentView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
-    """
-    Редактирование комментария.
-    """
     model = Comment
     form_class = CommentForm
     template_name = 'blog/comment.html'
@@ -193,9 +177,6 @@ class EditCommentView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
 
 
 class CommentDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):
-    """
-    Удаление комментария.
-    """
     model = Comment
     pk_url_kwarg = "comment_id"
     template_name = "blog/comment.html"
@@ -207,6 +188,7 @@ class CommentDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):
 
     def get_success_url(self):
         return reverse("blog:post_detail", kwargs={"post_id": self.kwargs["post_id"]})
+
 
 class ChangePasswordView(LoginRequiredMixin, RedirectView):
     pattern_name = 'password_change'

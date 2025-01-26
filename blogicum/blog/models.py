@@ -3,12 +3,11 @@ from django.db import models
 from .querysets import PostQuerySet
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
 
 User = get_user_model()
 
 MAX_TITLE_LENGTH = 256
-MAX_NAME_LENGTH = 256
+MAX_NAME_LENGTH = 20
 
 image = models.ImageField('Изображение', upload_to='media', blank=True)
 
