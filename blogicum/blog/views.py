@@ -2,7 +2,10 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
-from django.views.generic import FormView, CreateView, ListView, DeleteView, DetailView, UpdateView, RedirectView
+from django.views.generic import (
+    FormView, CreateView, ListView, DeleteView,
+    DetailView, UpdateView, RedirectView
+)
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy, reverse
@@ -77,7 +80,7 @@ class CategoryView(LoginRequiredMixin, ListView):
 
 class ProfileView(ListView):
     template_name = "blog/profile.html"
-    context_object_name = "object_list"
+    # context_object_name = "object_list"
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
@@ -93,7 +96,10 @@ class ProfileView(ListView):
             "category", "location", "author"
         ).order_by("-pub_date")
 
-        if not self.request.user.is_authenticated or self.request.user != user_profile:
+        if (
+                not self.request.user.is_authenticated
+                or self.request.user != user_profile
+        ):
             queryset = queryset.filter(
                 is_published=True,
                 pub_date__lte=timezone.now(),
@@ -147,10 +153,7 @@ class PostDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "post"
 
     def get_object(self):
-        post = Post.objects.filter(pk=self.kwargs['post_id']).first()
-        if not post:
-            return get_object_or_404()
-        return post
+        return get_object_or_404(Post, pk=self.kwargs['post_id'])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
