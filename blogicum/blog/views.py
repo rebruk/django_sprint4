@@ -9,7 +9,6 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy, reverse
-
 from .forms import PostForm, CommentForm
 from .models import Comment, Post, Category
 from django.db.models import Count
