@@ -18,6 +18,7 @@ class AboutPageView(TemplateView):
 class RulesPageView(TemplateView):
     template_name = "pages/rules.html"
 
+
 def send_notification_email(to_email):
     send_mail(
         subject='Добро пожаловать на сайт!',

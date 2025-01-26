@@ -1,10 +1,4 @@
 from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-from django.views.generic.base import RedirectView
-#from .views import RegisterView#, ProfileView, AboutPageView,
-from . import views
 from django.views.generic.edit import CreateView
 from django.urls import include, path, reverse_lazy
 from django.contrib.auth.forms import UserCreationForm
@@ -26,5 +20,4 @@ urlpatterns = [
             success_url=reverse_lazy('blog:index'),
         ),
         name='registration',
-    ),
-    ]# + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    ), ]

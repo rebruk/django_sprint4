@@ -18,7 +18,10 @@ class OnlyAuthorMixin(UserPassesTestMixin):
         return self.get_object().author == self.request.user
 
     def handle_no_permission(self):
-        return csrf_failure(self.request, reason="Вы не являетесь автором этого объекта.")
+        return csrf_failure(
+            self.request,
+            reason="Вы не являетесь автором этого объекта."
+        )
 
 
 class RegistrationView(FormView):
@@ -53,7 +56,11 @@ class CategoryView(LoginRequiredMixin, ListView):
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
-        self.category = get_object_or_404(Category, slug=self.kwargs['slug'], is_published=True)
+        self.category = get_object_or_404(
+            Category,
+            slug=self.kwargs['slug'],
+            is_published=True
+        )
         return Post.objects.filter(
             category=self.category, is_published=True
         ).annotate(comment_count=Count('comments')).order_by('-pub_date')
@@ -70,16 +77,24 @@ class ProfileView(ListView):
     paginate_by = settings.POSTS_PER_PAGE
 
     def get_queryset(self):
-        user_profile = get_object_or_404(User, username=self.kwargs["username"])
-        queryset = user_profile.posts.annotate(comment_count=Count("comments")).order_by('-pub_date')
-        queryset = queryset.filter(pub_date__lte=now())
+        user_profile = get_object_or_404(
+            User,
+            username=self.kwargs["username"]
+        )
+        queryset = user_profile.posts.all().annotate(
+            comment_count=Count("comments")
+        ).order_by('-pub_date')
+        #queryset = queryset.filter(pub_date__lte=now())
         if not self.request.user.is_authenticated or self.request.user != user_profile:
             queryset = queryset.filter(is_published=True)
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["profile"] = get_object_or_404(User, username=self.kwargs["username"])
+        context["profile"] = get_object_or_404(
+            User,
+            username=self.kwargs["username"]
+        )
         return context
 
 
@@ -91,7 +106,10 @@ class EditProfileView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def get_success_url(self):
-        return reverse("blog:profile", kwargs={"username": self.request.user.username})
+        return reverse(
+            "blog:profile",
+            kwargs={"username": self.request.user.username}
+        )
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -144,7 +162,10 @@ class PostEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
     pk_url_kwarg = "post_id"
 
     def get_success_url(self):
-        return reverse('blog:profile', kwargs={'username': self.request.user.username})
+        return reverse(
+            'blog:profile',
+            kwargs={'username': self.request.user.username}
+        )
 
 
 class PostDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):
@@ -159,7 +180,11 @@ class AddCommentView(LoginRequiredMixin, FormView):
     form_class = CommentForm
 
     def form_valid(self, form):
-        post = get_object_or_404(Post, id=self.kwargs['post_id'], is_published=True)
+        post = get_object_or_404(
+            Post,
+            id=self.kwargs['post_id'],
+            is_published=True
+        )
 
         form.instance.post = post
         form.instance.author = self.request.user
@@ -173,7 +198,10 @@ class EditCommentView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
     template_name = 'blog/comment.html'
 
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'post_id': self.object.post.id})
+        return reverse(
+            'blog:post_detail',
+            kwargs={'post_id': self.object.post.id}
+        )
 
 
 class CommentDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):
@@ -183,11 +211,15 @@ class CommentDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):
 
     def get_object(self):
         return get_object_or_404(
-            Comment, id=self.kwargs["comment_id"], post_id=self.kwargs["post_id"]
+            Comment, id=self.kwargs["comment_id"],
+            post_id=self.kwargs["post_id"]
         )
 
     def get_success_url(self):
-        return reverse("blog:post_detail", kwargs={"post_id": self.kwargs["post_id"]})
+        return reverse(
+            "blog:post_detail",
+            kwargs={"post_id": self.kwargs["post_id"]}
+        )
 
 
 class ChangePasswordView(LoginRequiredMixin, RedirectView):

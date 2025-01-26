@@ -1,14 +1,20 @@
 from django import forms
 from .models import Post, Comment
 
+
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['title', 'content', 'category', 'location', 'pub_date', 'is_published', 'image', 'text']
+        fields = ['title', 'content', 'category', 'location',
+                  'pub_date', 'is_published', 'image', 'text']
         widgets = {
-            'pub_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'pub_date': forms.DateTimeInput(
+                format=('%Y-%m-%dT%H:%M'),
+                attrs={'type': 'datetime-local'}
+            ),
             'text': forms.Textarea(attrs={'rows': 4, 'cols': 40})
         }
+
 
 class CommentForm(forms.ModelForm):
     class Meta:

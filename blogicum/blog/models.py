@@ -1,6 +1,4 @@
-from typing import Union
 from django.db import models
-from .querysets import PostQuerySet
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
@@ -10,6 +8,7 @@ MAX_TITLE_LENGTH = 256
 MAX_NAME_LENGTH = 20
 
 image = models.ImageField('Изображение', upload_to='media', blank=True)
+
 
 class BaseModel(models.Model):
     is_published = models.BooleanField(
@@ -24,6 +23,7 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
 
 class Category(BaseModel):
     title = models.CharField(
@@ -67,7 +67,8 @@ class Post(models.Model):
         max_length=MAX_TITLE_LENGTH,
         verbose_name="Заголовок"
     )
-    text = models.TextField( verbose_name='Текст')
+
+    text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
         verbose_name="Дата и время публикации",
         help_text="Если установить дату и время в будущем — "
@@ -103,9 +104,8 @@ class Post(models.Model):
         'Опубликовано',
         default=False
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    objects: Union[PostQuerySet, models.QuerySet] = PostQuerySet.as_manager()
 
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta(BaseModel.Meta):
         verbose_name = "публикация"
@@ -129,7 +129,6 @@ class Comment(models.Model):
     )
     text = models.TextField('Текст комментария')
     created_at = models.DateTimeField(auto_now_add=True)
-
 
     class Meta:
         verbose_name = 'комментарий'
