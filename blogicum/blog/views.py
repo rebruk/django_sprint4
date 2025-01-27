@@ -68,8 +68,11 @@ class CategoryView(LoginRequiredMixin, ListView):
             is_published=True
         )
         return Post.objects.filter(
-            category=self.category, is_published=True
-        ).annotate(comment_count=Count('comments')).order_by('-pub_date')
+            category=self.category,
+            is_published=True
+        ).annotate(
+            comment_count=Count('comments')
+        ).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -93,7 +96,7 @@ class ProfileView(ListView):
             comment_count=Count("comments")
         ).select_related(
             "category", "location", "author"
-        ).order_by("-pub_date")
+        )
 
         if (
                 not self.request.user.is_authenticated
