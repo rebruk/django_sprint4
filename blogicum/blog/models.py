@@ -13,11 +13,13 @@ image = models.ImageField('Изображение', upload_to='media', blank=Tru
 class BaseModel(models.Model):
     is_published = models.BooleanField(
         default=True,
+        blank=False,
         verbose_name="Опубликовано",
         help_text="Снимите галочку, чтобы скрыть публикацию."
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
+        blank=False,
         verbose_name="Добавлено"
     )
 
@@ -30,10 +32,14 @@ class Category(BaseModel):
         max_length=MAX_TITLE_LENGTH,
         verbose_name="Заголовок"
     )
-    description = models.TextField(verbose_name="Описание", blank=True)
+    description = models.TextField(
+        verbose_name="Описание",
+        blank=False
+    )
     slug = models.SlugField(
         verbose_name="Идентификатор",
         unique=True,
+        blank=False,
         help_text="Идентификатор страницы для URL; "
                   "разрешены символы латиницы, цифры, дефис и подчёркивание."
     )
@@ -50,6 +56,7 @@ class Category(BaseModel):
 class Location(BaseModel):
     name = models.CharField(
         max_length=MAX_NAME_LENGTH,
+        blank=False,
         verbose_name="местоположение"
     )
 
@@ -68,8 +75,9 @@ class Post(models.Model):
         verbose_name="Заголовок"
     )
 
-    text = models.TextField(verbose_name='Текст')
+    text = models.TextField(blank=False, verbose_name='Текст')
     pub_date = models.DateTimeField(
+        blank=False,
         verbose_name="Дата и время публикации",
         help_text="Если установить дату и время в будущем — "
                   "можно делать отложенные публикации.",
@@ -83,6 +91,7 @@ class Post(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        blank=False,
         verbose_name="Автор публикации",
         related_name='posts'
     )
@@ -90,6 +99,7 @@ class Post(models.Model):
         'Location',
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         related_name='posts'
     )
     category = models.ForeignKey(
@@ -101,7 +111,7 @@ class Post(models.Model):
     )
     is_published = models.BooleanField(
         'Опубликовано',
-        default=False
+        default=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -127,7 +137,10 @@ class Comment(models.Model):
         related_name="comments"
     )
     text = models.TextField('Текст комментария')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Добавлено'
+    )
 
     class Meta:
         verbose_name = 'комментарий'
@@ -135,4 +148,4 @@ class Comment(models.Model):
         ordering = ('created_at',)
 
     def __str__(self) -> str:
-        return self.text
+        return f'Комментарий к публикации {self.post.title} от {self.author}.'
