@@ -6,13 +6,14 @@ from django.views.generic import (
     FormView, CreateView, ListView, DeleteView,
     DetailView, UpdateView, RedirectView
 )
+from django.http import Http404
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy, reverse
 from .forms import PostForm, CommentForm
 from .models import Comment, Post, Category
 from django.db.models import Count
-from pages.views import csrf_failure
+from pages.views import csrf_failure, page_not_found
 
 
 class OnlyAuthorMixin(UserPassesTestMixin):
@@ -88,12 +89,10 @@ class CategoryView(LoginRequiredMixin, ListView):
 
 
 class ProfileView(ListView):
+    model = Post
     template_name = "blog/profile.html"
     paginate_by = settings.POSTS_PER_PAGE
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.profile = None
 
     def get_queryset(self):
         user_profile = get_object_or_404(
@@ -102,23 +101,22 @@ class ProfileView(ListView):
         )
         self.profile = user_profile
 
-        queryset = self.profile.posts.annotate(
+        queryset = self.profile.posts.select_related(
+            "author", "category", "location"
+        ).annotate(
             comment_count=Count("comments")
-        ).select_related(
-            "category", "location", "author"
-        )
-
+        ).order_by("-pub_date")
         if (
                 not self.request.user.is_authenticated
                 or self.request.user != user_profile
         ):
             queryset = queryset.filter(
                 is_published=True,
-                pub_date__lte=timezone.now(),
-                category__is_published=True
+                category__is_published=True,
+                pub_date__lte=timezone.now()
             )
-
         return queryset
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -164,13 +162,26 @@ class PostDetailView(LoginRequiredMixin, DetailView):
     template_name = "blog/detail.html"
     context_object_name = "post"
 
-    def get_object(self):
-        return get_object_or_404(Post, pk=self.kwargs['post_id'])
+    def get_object(self, **kwargs):
+        post = get_object_or_404(
+            self.model.objects.filter(pk=self.kwargs['post_id'])
+        )
+
+        if post.author == self.request.user:
+            return post
+
+        is_denied = (not post.is_published
+                     or post.pub_date > timezone.now()
+                     or not post.category.is_published)
+        if is_denied:
+            raise Http404
+
+        return post
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = CommentForm()
-        context['comments'] = self.object.comments.order_by("created_at")
+        context['comments'] = self.object.comments.select_related("author").order_by("created_at")
         return context
 
     def post(self, request):
