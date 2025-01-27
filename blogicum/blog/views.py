@@ -197,7 +197,7 @@ class PostEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         if not self.test_func():
             return redirect(reverse(
-                'blog:post_detail', kwargs={'post_id': self.kwargs['pk']}
+                'blog:post_detail', kwargs={"post_id": self.object.pk}
             ))
         else:
             return super().dispatch(request, *args, **kwargs)
