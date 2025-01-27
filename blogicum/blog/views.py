@@ -13,7 +13,7 @@ from django.urls import reverse_lazy, reverse
 from .forms import PostForm, CommentForm
 from .models import Comment, Post, Category
 from django.db.models import Count
-from pages.views import csrf_failure, page_not_found
+from pages.views import csrf_failure
 
 
 class OnlyAuthorMixin(UserPassesTestMixin):
@@ -93,7 +93,6 @@ class ProfileView(ListView):
     template_name = "blog/profile.html"
     paginate_by = settings.POSTS_PER_PAGE
 
-
     def get_queryset(self):
         user_profile = get_object_or_404(
             User,
@@ -116,7 +115,6 @@ class ProfileView(ListView):
                 pub_date__lte=timezone.now()
             )
         return queryset
-
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -181,7 +179,7 @@ class PostDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = CommentForm()
-        context['comments'] = self.object.comments.select_related("author").order_by("created_at")
+        context['comments'] = self.object.comments.order_by("created_at")
         return context
 
     def post(self, request):
