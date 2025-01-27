@@ -69,8 +69,11 @@ class CategoryView(LoginRequiredMixin, ListView):
         )
         return Post.objects.filter(
             category=self.category,
+            pub_date__lte=timezone.now(),
             is_published=True
-        ).annotate(
+        ).select_related('author',
+                         'category',
+                         'location').annotate(
             comment_count=Count('comments')
         ).order_by('-pub_date')
 
@@ -82,8 +85,11 @@ class CategoryView(LoginRequiredMixin, ListView):
 
 class ProfileView(ListView):
     template_name = "blog/profile.html"
-    # context_object_name = "object_list"
     paginate_by = settings.POSTS_PER_PAGE
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.profile = None
 
     def get_queryset(self):
         user_profile = get_object_or_404(
@@ -181,10 +187,24 @@ class PostEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
     template_name = "blog/create.html"
     pk_url_kwarg = "post_id"
 
+    def test_func(self):
+        self.object = self.get_object()
+        return (
+            self.request.user.is_authenticated
+            and self.object.author == self.request.user
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.test_func():
+            return redirect(reverse(
+                'blog:post_detail', kwargs={'post_id': self.kwargs['pk']}
+            ))
+        else:
+            return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
-        return reverse(
-            'blog:profile',
-            kwargs={'username': self.request.user.username}
+        return reverse_lazy(
+            'blog:post_detail', kwargs={'post_id': self.object.pk}
         )
 
 

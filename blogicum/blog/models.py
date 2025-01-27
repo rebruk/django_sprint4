@@ -80,7 +80,6 @@ class Post(models.Model):
         upload_to='post_images/',
         blank=True
     )
-    content = models.TextField(null=True, blank=True)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
