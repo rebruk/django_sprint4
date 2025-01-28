@@ -7,24 +7,12 @@ from django.views.generic import (
     DetailView, UpdateView, RedirectView
 )
 from django.http import Http404
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy, reverse
 from .forms import PostForm, CommentForm
 from .models import Comment, Post, Category
-from django.db.models import Count
-from pages.views import csrf_failure
-
-
-class OnlyAuthorMixin(UserPassesTestMixin):
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-    def handle_no_permission(self):
-        return csrf_failure(
-            self.request,
-            reason="Вы не являетесь автором этого объекта."
-        )
+from .mixins import OnlyAuthorMixin
 
 
 class RegistrationView(FormView):
@@ -47,15 +35,10 @@ class IndexView(ListView):
 
     def get_queryset(self):
         return (
-            super()
-            .get_queryset().
-            filter(
-                is_published=True,
-                category__is_published=True,
-                pub_date__lte=timezone.now()
-            )
-            .annotate(comment_count=Count('comments'))
-            .order_by('-pub_date')
+            Post.objects
+            .published()
+            .with_comments_count()
+            .order_by("-pub_date")
         )
 
 
@@ -72,15 +55,13 @@ class CategoryView(LoginRequiredMixin, ListView):
             slug=self.kwargs['slug'],
             is_published=True
         )
-        return Post.objects.filter(
-            category=self.category,
-            pub_date__lte=timezone.now(),
-            is_published=True
-        ).select_related('author',
-                         'category',
-                         'location').annotate(
-            comment_count=Count('comments')
-        ).order_by('-pub_date')
+        return (
+            Post.objects.published()
+            .filter(category=self.category)
+            .select_related('author', 'category', 'location')
+            .with_comments_count()
+            .order_by("-pub_date")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -101,19 +82,15 @@ class ProfileView(ListView):
         self.profile = user_profile
 
         queryset = self.profile.posts.select_related(
-            "author", "category", "location"
-        ).annotate(
-            comment_count=Count("comments")
-        ).order_by("-pub_date")
-        if (
-                not self.request.user.is_authenticated
-                or self.request.user != user_profile
-        ):
-            queryset = queryset.filter(
-                is_published=True,
-                category__is_published=True,
-                pub_date__lte=timezone.now()
-            )
+            "author",
+            "category",
+            "location"
+        ).with_comments_count().order_by("-pub_date")
+
+        if not self.request.user.is_authenticated or \
+                self.request.user != user_profile:
+            queryset = queryset.published()
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -168,10 +145,10 @@ class PostDetailView(LoginRequiredMixin, DetailView):
         if post.author == self.request.user:
             return post
 
-        is_denied = (not post.is_published
-                     or post.pub_date > timezone.now()
-                     or not post.category.is_published)
-        if is_denied:
+        # Проверяем условия, при которых доступ к посту должен быть запрещён
+        if (not post.is_published
+                or post.pub_date > timezone.now()
+                or not post.category.is_published):
             raise Http404
 
         return post
@@ -182,16 +159,18 @@ class PostDetailView(LoginRequiredMixin, DetailView):
         context['comments'] = self.object.comments.order_by("created_at")
         return context
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = self.object
-            comment.author = request.user
-            comment.save()
-            return redirect("blog:post_detail", post_id=self.object.id)
-        return self.render_to_response(self.get_context_data(form=form))
+
+        if not form.is_valid():
+            return self.render_to_response(self.get_context_data(form=form))
+
+        comment = form.save(commit=False)
+        comment.post = self.object
+        comment.author = request.user
+        comment.save()
+        return redirect("blog:post_detail", post_id=self.object.id)
 
 
 class PostEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
@@ -216,9 +195,7 @@ class PostEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
             return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse_lazy(
-            'blog:post_detail', kwargs={"post_id": self.object.pk}
-        )
+        return reverse('blog:post_detail', kwargs={"post_id": self.object.pk})
 
 
 class PostDeleteView(LoginRequiredMixin, OnlyAuthorMixin, DeleteView):

@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from .querysets import PostQuerySet
 
 User = get_user_model()
 
@@ -8,6 +9,20 @@ MAX_TITLE_LENGTH = 256
 MAX_NAME_LENGTH = 20
 
 image = models.ImageField('Изображение', upload_to='media', blank=True)
+
+
+class PostManager(models.Manager):
+    def get_queryset(self):
+        return PostQuerySet(self.model, using=self._db)
+
+    def published(self):
+        return self.get_queryset().published()
+
+    def with_comments_count(self):
+        return self.get_queryset().with_comments_count()
+
+    def for_user(self, user):
+        return self.get_queryset().for_user(user)
 
 
 class BaseModel(models.Model):
@@ -44,10 +59,12 @@ class Category(BaseModel):
                   "разрешены символы латиницы, цифры, дефис и подчёркивание."
     )
 
+    objects = PostManager()
+
     class Meta(BaseModel.Meta):
         verbose_name = "категория"
         verbose_name_plural = "Категории"
-        ordering = ["title"]
+        ordering = ['title']
 
     def __str__(self):
         return self.title
@@ -69,12 +86,32 @@ class Location(BaseModel):
         return self.name
 
 
-class Post(models.Model):
+class Post(BaseModel):
+    # Отношения (Foreign Key, One-to-One, Many-to-Many)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        blank=False,
+        verbose_name="Автор публикации",
+    )
+    location = models.ForeignKey(
+        'Location',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    category = models.ForeignKey(
+        'Category',
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Категория",
+    )
+
+    # Поля модели
     title = models.CharField(
         max_length=MAX_TITLE_LENGTH,
         verbose_name="Заголовок"
     )
-
     text = models.TextField(blank=False, verbose_name='Текст')
     pub_date = models.DateTimeField(
         blank=False,
@@ -88,38 +125,14 @@ class Post(models.Model):
         upload_to='post_images/',
         blank=True
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        blank=False,
-        verbose_name="Автор публикации",
-        related_name='posts'
-    )
-    location = models.ForeignKey(
-        'Location',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='posts'
-    )
-    category = models.ForeignKey(
-        'Category',
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name="Категория",
-        related_name='posts'
-    )
-    is_published = models.BooleanField(
-        'Опубликовано',
-        default=True
-    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    objects = PostQuerySet.as_manager()
 
     class Meta(BaseModel.Meta):
         verbose_name = "публикация"
         verbose_name_plural = "Публикации"
         ordering = ["-pub_date"]
+        default_related_name = 'posts'
 
     def __str__(self):
         return self.title
@@ -129,12 +142,10 @@ class Comment(models.Model):
     post = models.ForeignKey(
         'Post',
         on_delete=models.CASCADE,
-        related_name='comments'
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="comments"
     )
     text = models.TextField('Текст комментария')
     created_at = models.DateTimeField(
@@ -146,6 +157,7 @@ class Comment(models.Model):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
         ordering = ('created_at',)
+        default_related_name = 'comments'  # Выносим related_name по умолчанию
 
     def __str__(self) -> str:
         return self.text
