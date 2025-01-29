@@ -8,22 +8,6 @@ User = get_user_model()
 MAX_TITLE_LENGTH = 256
 MAX_NAME_LENGTH = 20
 
-image = models.ImageField('Изображение', upload_to='media', blank=True)
-
-
-class PostManager(models.Manager):
-    def get_queryset(self):
-        return PostQuerySet(self.model, using=self._db)
-
-    def published(self):
-        return self.get_queryset().published()
-
-    def with_comments_count(self):
-        return self.get_queryset().with_comments_count()
-
-    def for_user(self, user):
-        return self.get_queryset().for_user(user)
-
 
 class BaseModel(models.Model):
     is_published = models.BooleanField(
@@ -70,7 +54,7 @@ class Category(BaseModel):
                   "разрешены символы латиницы, цифры, дефис и подчёркивание."
     )
 
-    objects = PostManager()
+    objects = PostQuerySet.as_manager()
 
     class Meta(BaseModel.Meta):
         verbose_name = "категория"

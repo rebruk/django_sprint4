@@ -55,13 +55,8 @@ class CategoryView(LoginRequiredMixin, ListView):
             slug=self.kwargs['slug'],
             is_published=True
         )
-        return (
-            Post.objects.published()
-            .filter(category=self.category)
-            .select_related('author', 'category', 'location')
-            .with_comments_count()
-            .ordered()
-        )
+        return self.category.posts.for_category(
+            self.category).with_comments_count()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -81,11 +76,7 @@ class ProfileView(ListView):
         )
         self.profile = user_profile
 
-        queryset = self.profile.posts.select_related(
-            "author",
-            "category",
-            "location"
-        ).with_comments_count()
+        queryset = self.profile.posts.with_related().with_comments_count()
 
         if not self.request.user.is_authenticated or \
                 self.request.user != user_profile:
@@ -138,20 +129,22 @@ class PostDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "post"
 
     def get_object(self, **kwargs):
-        post = get_object_or_404(
-            self.model.objects.filter(pk=self.kwargs['post_id'])
-        )
+        queryset = self.model.objects.filter(pk=self.kwargs['post_id'])
 
-        if post.author == self.request.user:
-            return post
-
-        # Проверяем условия, при которых доступ к посту должен быть запрещён
-        if (not post.is_published
-                or post.pub_date > timezone.now()
-                or not post.category.is_published):
+        post = queryset.first()
+        if post is None:
             raise Http404
 
-        return post
+        if self.request.user == post.author:
+            return get_object_or_404(queryset)
+
+        queryset = queryset.filter(
+            is_published=True,
+            pub_date__lte=timezone.now(),
+            category__is_published=True
+        )
+
+        return get_object_or_404(queryset)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
