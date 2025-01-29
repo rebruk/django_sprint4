@@ -41,6 +41,7 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
+
 class BaseModelComments(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -50,6 +51,7 @@ class BaseModelComments(models.Model):
 
     class Meta:
         abstract = True
+
 
 class Category(BaseModel):
     title = models.CharField(
