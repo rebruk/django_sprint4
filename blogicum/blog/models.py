@@ -41,6 +41,15 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
+class BaseModelComments(models.Model):
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        blank=False,
+        verbose_name="Добавлено"
+    )
+
+    class Meta:
+        abstract = True
 
 class Category(BaseModel):
     title = models.CharField(
@@ -87,7 +96,6 @@ class Location(BaseModel):
 
 
 class Post(BaseModel):
-    # Отношения (Foreign Key, One-to-One, Many-to-Many)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -107,7 +115,6 @@ class Post(BaseModel):
         verbose_name="Категория",
     )
 
-    # Поля модели
     title = models.CharField(
         max_length=MAX_TITLE_LENGTH,
         verbose_name="Заголовок"
@@ -131,14 +138,13 @@ class Post(BaseModel):
     class Meta(BaseModel.Meta):
         verbose_name = "публикация"
         verbose_name_plural = "Публикации"
-        ordering = ["-pub_date"]
         default_related_name = 'posts'
 
     def __str__(self):
         return self.title
 
 
-class Comment(models.Model):
+class Comment(BaseModelComments):
     post = models.ForeignKey(
         'Post',
         on_delete=models.CASCADE,

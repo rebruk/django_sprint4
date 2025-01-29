@@ -11,5 +11,8 @@ class PostQuerySet(models.QuerySet):
             pub_date__lte=timezone.now()
         )
 
+    def ordered(self):
+        return self.order_by("-pub_date")
+
     def with_comments_count(self):
         return self.annotate(comment_count=Count('comments'))

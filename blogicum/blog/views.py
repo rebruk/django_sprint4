@@ -38,7 +38,7 @@ class IndexView(ListView):
             Post.objects
             .published()
             .with_comments_count()
-            .order_by("-pub_date")
+            .ordered()
         )
 
 
@@ -60,7 +60,7 @@ class CategoryView(LoginRequiredMixin, ListView):
             .filter(category=self.category)
             .select_related('author', 'category', 'location')
             .with_comments_count()
-            .order_by("-pub_date")
+            .ordered()
         )
 
     def get_context_data(self, **kwargs):
@@ -85,13 +85,13 @@ class ProfileView(ListView):
             "author",
             "category",
             "location"
-        ).with_comments_count().order_by("-pub_date")
+        ).with_comments_count()
 
         if not self.request.user.is_authenticated or \
                 self.request.user != user_profile:
             queryset = queryset.published()
 
-        return queryset
+        return queryset.ordered()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
