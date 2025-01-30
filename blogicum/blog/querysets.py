@@ -20,6 +20,7 @@ class PostQuerySet(models.QuerySet):
     def with_related(self):
         return self.select_related("author", "category", "location")
 
+
 class CategoryQuerySet(models.QuerySet):
     def published(self):
         return self.filter(is_published=True)
