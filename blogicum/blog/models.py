@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from .querysets import PostQuerySet
+from .querysets import PostQuerySet, CategoryQuerySet
 
 User = get_user_model()
 
@@ -54,7 +54,7 @@ class Category(BaseModel):
                   "разрешены символы латиницы, цифры, дефис и подчёркивание."
     )
 
-    objects = PostQuerySet.as_manager()
+    objects = CategoryQuerySet.as_manager()
 
     class Meta(BaseModel.Meta):
         verbose_name = "категория"

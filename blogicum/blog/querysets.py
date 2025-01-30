@@ -17,8 +17,9 @@ class PostQuerySet(models.QuerySet):
     def with_comments_count(self):
         return self.annotate(comment_count=Count('comments'))
 
-    def for_category(self, category):
-        return category.posts.published().ordered()
-
     def with_related(self):
         return self.select_related("author", "category", "location")
+
+class CategoryQuerySet(models.QuerySet):
+    def published(self):
+        return self.filter(is_published=True)
