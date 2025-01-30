@@ -55,7 +55,7 @@ class CategoryView(LoginRequiredMixin, ListView):
             slug=self.kwargs['slug'],
             is_published=True
         )
-        return self.category.posts.published().ordered().with_comments_count()
+        return self.category.posts.published().ordered().with_comments_count() 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
